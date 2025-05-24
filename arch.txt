@@ -1,0 +1,150 @@
+#Connect with the internet:
+iwctl
+station wlan0 connect "ssid"
+
+
+#Disk partition:
+lsblk
+
+cgdisk /dev/sda
+    new <enter>
+        for boot drive: 1024MiB <enter> , EF00 <enter>, boot <enter>
+    new <enter>
+        for swap drive: 16GiB <enter> , 8200 <enter>, swap <enter>
+    new <enter>
+        for root drive: 35GiB <enter> , 8300 <enter>, root <enter>
+    new <enter>
+        for home drive: <enter> , 8300 <enter>, home <enter>
+    
+    write <enter>, yes <enter>
+    quite <enter>
+
+lsblk
+
+mkfs.fat -F32 /dev/sda(boot)
+mkswap /dev/sda(swap)
+swapon /dev/sda(swap)
+mkfs.ext4 /dev/sda(root)
+mkfs.ext4 /dev/sda(home)
+
+lsblk
+
+mount /dev/sda(root) /mnt
+
+mkdir /mnt/boot
+mkdir /mnt/home
+
+mount /dev/sda(boot) /mnt/boot
+mount /dev/sda(home) /mnt/home
+
+lsblk
+
+#updating mirrorlist
+
+cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.backup
+
+sudo pacman -Sy
+sudo pacman -S pacman-contrib
+
+rankmirrors -n 6 /etc/pacman.d/mirrorlist.backup > /etc/pacman.d/mirrorlist
+
+#install arch
+
+pacstrap -K /mnt base linux linux-firmware base-devel
+
+#generate fstab
+
+genfstab -U -p /mnt >> /mnt/etc/fstab
+
+arch-chroot /mnt
+
+sudo pacman -S nano bash-completion
+
+#generate locale
+
+nano /etc/locale.gen
+    <control + w> en_US.UTF-8
+    uncomment it
+    <control + x> save
+
+locale-gen
+
+echo LANG=en_US.UTF-8 > /etc/locale.conf
+export LANG=en_US.UTF-8
+
+ln -s /usr/share/zoneinfo/Asia/Dhaka > /etc/localtime
+
+hwclock --systohc --utc
+
+#create host
+
+echo redlotus > /etc/hostname
+
+#ssd trim support
+
+systemctl enable fstrim.timer
+
+#enable 32bit support
+
+nano /etc/pacman.conf
+    <control + w> multilib
+    uncomment [multilib] and include
+    <control + x> save
+
+sudo pacman -Sy
+
+#set root password
+
+passwd
+
+#user account
+
+useradd -m -g users -G wheel,storage,power -s /bin/bash pronaybala
+passwd pronaybala
+
+EDITOR=nano visudo
+    <control + w> %wheel
+    uncomment to allow wheel
+    
+    go to the bottom and write: Defaults rootpw
+
+
+#install bootloader
+
+mount -t efivarfs efivarfs /sys/firmware/efi/efivars/
+
+bootctl intall
+
+nano /boot/loader/entries/arch.conf
+    title Arch
+    linux /vmlinuz-linux
+    initrd /initramfs-linux.img
+
+    <control + x> save
+
+echo "options root=PARTUUID=$(blkid -s PARTUUID -o value /dev/sda(root) rw" >> /boot/loader/entries/arch.conf
+
+cat /boot/loader/entries/arch.conf
+
+#install intel ucode from arch wiki
+
+sudo pacman -S networkmanager
+
+sudo systemctl enable NetworkManager.service
+
+#done
+
+reboot
+
+#using xorg
+
+sudo pacman -S xorg-server xorg-apps xorg-xinit xorg-twm xorg-xclock xorg-xterm
+
+sudo pacman -S plasma sddm
+
+sudo systemctl enable sddm.service
+
+reboot
+
+
+
