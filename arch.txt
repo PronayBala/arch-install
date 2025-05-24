@@ -122,7 +122,7 @@ nano /boot/loader/entries/arch.conf
 
     <control + x> save
 
-echo "options root=PARTUUID=$(blkid -s PARTUUID -o value /dev/sda(root) rw" >> /boot/loader/entries/arch.conf
+echo "options root=PARTUUID=$(blkid -s PARTUUID -o value /dev/sda(root)) rw" >> /boot/loader/entries/arch.conf
 
 cat /boot/loader/entries/arch.conf
 
